@@ -1,10 +1,14 @@
 
-# ICML20
+# ICML 2020
+# Measuring Non-Expert Comprehension of Machine Learning Fairness Metrics (#1357)
+# Supplementary Materials - Analysis code
 
-# SUBMISSION: Measuring Non-Expert Comprehension of Machine Learning Fairness Metrics
-# Supplementary Materials
-# Analysis code
-# due: Feb. 19, 2020
+# DEBJANI SAHA, Candice Schumann, Duncan C. McElFresh, John P. Dickerson, Michelle L. Mazurek, Michael C. Tschantz
+# Manuscript: https://arxiv.org/abs/2001.00089
+# Code: https://github.com/saharaja/ICML2020-fairness
+# Conference: https://icml.cc/Conferences/2020
+
+
 
 # NOTE:  #****** = significant test
 
@@ -20,6 +24,695 @@ library(reshape2)
 library(grid)
 library(gridExtra)
 library(psych)
+
+
+#######################################
+#######################################
+#                                     #
+#           Study-1 (Pilot)           #
+#   Abstract published at AIES 2020   #
+#                                     #
+#######################################
+#######################################
+
+
+
+# ====== SETUP ====== #
+
+# Read in reformatted data
+setwd("C:/Users/Debjani Saha/Documents/University of Maryland/Projects/Alg Fairness/20191024 AIES submission (11-04)")
+all.scenarios <- read.table("../Study 0/20190813_FINAL_PARTICIPANT_LIST.txt",header=T,sep="\t",quote="",row.names=1)
+
+# Reformat T/F questions
+all.scenarios$Q5 <- factor(all.scenarios$Q5,levels=c("TRUE","FALSE"))
+all.scenarios$Q6 <- factor(all.scenarios$Q6,levels=c("TRUE","FALSE"))
+all.scenarios$Q7 <- factor(all.scenarios$Q7,levels=c("TRUE","FALSE"))
+all.scenarios$Q8 <- factor(all.scenarios$Q8,levels=c("TRUE","FALSE"))
+
+# Reformat Y/N questions
+all.scenarios$Q9 <- factor(all.scenarios$Q9,levels=c("Yes","No"))
+all.scenarios$Q10 <- factor(all.scenarios$Q10,levels=c("Yes","No"))
+all.scenarios$Q11 <- factor(all.scenarios$Q11,levels=c("Yes","No"))
+
+# Reformat likert questions
+all.scenarios$Q1 <- as.factor(all.scenarios$Q1)
+all.scenarios$Q13 <- as.factor(all.scenarios$Q13)
+
+# Reformat multiple choice question
+all.scenarios$Q3 <- as.factor(all.scenarios$Q3)	# Suppose a different teacher/manager/hiring manager is considering...
+all.scenarios$Q14 <- factor(all.scenarios$Q14)  # Please select the choice that best describes your experience
+
+# Reformat demographic questions
+all.scenarios$edu <- as.factor(gsub("High school","HS",as.character(all.scenarios$edu)))
+all.scenarios$edu <- factor(all.scenarios$edu,levels=c("Some high school credit, no diploma or equivalent",
+                                                       "HS graduate, diploma or the equivalent (for example: GED)",
+                                                       "Some college credit, no degree",
+                                                       "Trade/technical/vocational training",
+                                                       "Associate's degree",
+                                                       "Bachelor's degree",
+                                                       "Master's degree",
+                                                       "Professional or doctoral degree (JD, MD, PhD)"))
+all.scenarios$exp.hr <- as.factor(all.scenarios$exp.hr)
+all.scenarios$exp.mng <- as.factor(all.scenarios$exp.mng)
+all.scenarios$exp.edu <- as.factor(all.scenarios$exp.edu)
+all.scenarios$exp.it <- as.factor(all.scenarios$exp.it)
+all.scenarios$exp.cs <- as.factor(all.scenarios$exp.cs)
+all.scenarios$exp.ml <- as.factor(all.scenarios$exp.ml)
+
+# Remove participant who took particularly long (over 2hrs)
+remove <- grep("2159e15c-5da7-0ae3-a3eb-d772e28fdb81",rownames(all.scenarios))
+remove <- which(all.scenarios$Duration > 10000)
+all.scenarios <- droplevels(all.scenarios[-remove,])
+n.respondents <- dim(all.scenarios)[1]
+#correct.answers <- correct.answers[-remove,]
+#score.sheet <- score.sheet[-remove,]
+
+
+# ====== DEMOGRAPHICS ====== #
+
+# Age Distribution
+hist((2019-all.scenarios$YOB),xlim=c(10,80),xlab="Age",main="")
+
+# Education Level
+x <- data.frame(table(all.scenarios$edu)/n.respondents)
+colnames(x) <- c("Level","Percent")
+x$Percent <- percent(x$Percent)
+x
+# Requested breaks (from 2017 census)
+# Less than HS graduate: 12.1%
+# HS graduate: 27.7%
+# Some college or associate's degree: 30.8%
+# Bachelor's degree or above: 29.4%
+
+# Gender
+x <- data.frame(table(all.scenarios$gender)/n.respondents)
+colnames(x) <- c("Gender","Percent")
+x$Percent <- percent(x$Percent)
+x
+
+# Ethnicity
+x <- data.frame(table(all.scenarios$eth)/n.respondents)
+colnames(x) <- c("Ethnicity","Percent")
+x$Percent <- percent(x$Percent)
+x
+rm(x)
+# Requested breaks (from 2017 census):
+# American Indian or Alaska Native: 0.7%
+# Asian: 5.5%
+# Native Hawaiian and Other Pacific Islander: 0.2%
+# Black or African American: 12.3%
+# Hispanic or Latino: 18.1%
+# Other: 0.3%
+# Mixed: 2.3%
+# White: 60.6%
+
+
+
+# ====== COMPREHENSION SCORE ====== #
+
+# Descriptive Statistics
+correct.answers <- cbind(rep("20",n.respondents),
+                         rep("Correct",n.respondents),
+                         rep("TRUE",n.respondents),
+                         rep("FALSE",n.respondents),
+                         rep("TRUE",n.respondents),
+                         rep("FALSE",n.respondents),
+                         rep("Yes",n.respondents),
+                         rep("No",n.respondents),
+                         rep("No",n.respondents))
+colnames(correct.answers) <- c("Q3","Q4","Q5","Q6","Q7","Q8","Q9","Q10","Q11")
+
+all.scenarios$score <- rowSums(all.scenarios[,colnames(correct.answers)]==correct.answers)
+score.sheet <- data.frame(all.scenarios[,colnames(correct.answers)]==correct.answers)
+
+summary(all.scenarios$score)
+#boxplot(all.scenarios$score)
+sd(all.scenarios$score)
+
+# Proportion of respondents (out of 147) answering each question correctly:
+x <- data.frame(Percent=colSums(score.sheet)/n.respondents)
+x$Percent <- percent(x$Percent)
+colnames(x) <- c("Percent Correct")
+x
+rm(x)
+
+# Respondents answering each question correctly, split by scenario
+# (each column comprises all 147 respondents)
+score.sheet$CintID <- all.scenarios$CintID
+score.sheet$scenario <- all.scenarios$scenario
+score.sheet.melt <- melt(score.sheet,id.vars=c("CintID","scenario"))
+colnames(score.sheet.melt) <- c("CintID","scenario","question","value")
+score.sheet.melt$value <- gsub("FALSE","Incorrect",gsub("TRUE","Correct",score.sheet.melt$value))
+ggplot(score.sheet.melt,aes(x=value)) + geom_bar(stat="count",color="black",aes(fill=value)) + 
+  scale_fill_manual(values=c("white","grey"),name="") + scale_x_discrete("") + scale_y_continuous("# of Participants") + 
+  facet_grid(scenario ~ question) + theme_bw() + theme(axis.text.x=element_blank(),axis.ticks.x=element_blank())
+
+
+# Internal Validity
+# Assessed using two measures: 
+# Cronbach's alpha
+# Item-total correlation
+responses <- score.sheet[,colnames(correct.answers)]
+responses[responses=="TRUE"] <- 1
+psych::alpha(responses)
+
+### Resources for internal validity
+### https://mattchoward.com/introduction-to-cronbachs-alpha/
+### https://mattchoward.com/calculating-cronbachs-alpha-in-r/
+### https://rpubs.com/hauselin/reliabilityanalysis
+### https://www.researchgate.net/post/Is_it_correct_to_use_Cronbach_s_Alpha_to_assess_the_internal_consistency_of_a_questionnaire_with_binary_data_yes_no
+### https://en.wikipedia.org/wiki/Item_response_theory
+
+
+
+# ====== PRELIMINARY ANALYSIS AND RESULTS ====== #
+
+## Test 1: comprehension score vs. [scenario,education,age]
+test.score <- data.frame(score=all.scenarios$score,
+                         scenario=all.scenarios$scenario,
+                         edu=all.scenarios$edu,
+                         age=(2019-all.scenarios$YOB))
+rownames(test.score) <- rownames(all.scenarios)
+
+# Comprehension score by scenario
+ggplot(test.score,aes(x=score)) + geom_histogram(binwidth=1,color="black",fill="white") + 
+  facet_grid(. ~ scenario) + scale_x_continuous("Comprehension Score",breaks=c(0:9)) + 
+  scale_y_continuous("# of Participants") + theme_bw()
+
+# Comprehension score by education level
+ggplot(test.score,aes(x=score)) + geom_histogram(binwidth=1,color="black",fill="white") + 
+  facet_wrap(~edu) + scale_x_continuous("Comprehension Score",breaks=c(0:9)) + theme_bw() +
+  scale_y_continuous("# of Participants",breaks=c(0:11),labels=c("0","","2","","4","","6","","8","","10",""))
+
+# Comprehension score by age
+ggplot(test.score,aes(x=age,y=score)) + geom_point() + 
+  scale_y_continuous("Comprehension Score",breaks=c(0:9)) + 
+  scale_x_continuous("Age") + theme_bw()
+
+# Test using GLM with poisson distribution, treating education as categorical:
+fit.score <- glm(score ~ scenario + edu + age, test.score, family="poisson")
+summary(fit.score)
+
+# Test using GLM with poisson distribution, treating education as ordinal:
+fit.score <- glm(score ~ scenario + as.numeric(edu) + age, test.score, family="poisson")
+summary(fit.score)
+
+
+## Test 2: perceived realism (Q1) vs. [scenario,gender,ethnicity]
+# Realism of the presented scenario was estimated using the following question (Q1):
+# To what extent do you agree with the following statement: a scenario similar to the one described above might occur in real life.
+# (1)	Strongly agree
+# (2)	Agree
+# (3)	Neither agree nor disagree
+# (4)	Disagree
+# (5)	Strongly disagree
+
+test.realism <- data.frame(realism=as.numeric(all.scenarios$Q1),
+                           scenario=all.scenarios$scenario,
+                           gender=all.scenarios$gender,
+                           eth=all.scenarios$eth)
+rownames(test.realism) <- rownames(all.scenarios)
+
+ggplot(test.realism,aes(x=realism)) + geom_histogram(binwidth=1,color="black",fill="white") + 
+  facet_grid(. ~ scenario) + scale_x_continuous("Likert Rating",breaks=c(1:5)) + 
+  scale_y_continuous("# of Participants") + theme_bw()
+
+# Test using GLM with poisson distribution:
+fit.realism <- glm(realism ~ scenario + gender + eth, test.realism, family="poisson")
+summary(fit.realism)
+
+# Redo the above test, but make ethnicity a binary category (white vs. other), since the survey population was predominantly white (73.3%):
+test.realism$eth2 <- factor(gsub("^[A-N].*","Other",test.realism$eth))
+fit.realism <- glm(realism ~ scenario + gender + eth2, test.realism, family="poisson")
+summary(fit.realism)
+
+
+## Test 3: hours of effort (Q2) vs. scenario
+# Participants were asked how many hours should be dedicated to ensure that the decision described in the survey was fair (Q2).
+test.effort <- data.frame(effort=all.scenarios$Q2,scenario=all.scenarios$scenario)
+rownames(test.effort) <- rownames(all.scenarios)
+
+ggplot(test.effort,aes(x=effort)) + geom_histogram(binwidth=1,color="black",fill="white") + 
+  facet_grid(. ~ scenario) + scale_x_continuous("Hours of Effort") + 
+  scale_y_continuous("# of Participants") + theme_bw()
+
+# Test using Kruskal-Wallis:
+kruskal.test(effort ~ scenario, test.effort)
+
+# Pairwaise post-hoc tests using Mann-Whitney U:
+# Employee awards vs. Hiring
+wilcox.test(effort ~ scenario,droplevels(test.effort[test.effort$scenario!="AP",]))
+# Art project vs. Hiring
+wilcox.test(effort ~ scenario,droplevels(test.effort[test.effort$scenario!="EA",]))
+# Art project vs. Employee awards
+wilcox.test(effort ~ scenario,droplevels(test.effort[test.effort$scenario!="HR",]))
+
+
+## Test 4: self-report of rule usage (Q14) vs. [scenario,age,gender,education, comprehension score]
+# Participants were asked to self-resport their application of the rule in answering the questions (Q14):
+# rule only (1)
+# their own personal notions of fairness (3)
+# some combination thereof (2).
+
+test.selfreport <- data.frame(self=as.numeric(all.scenarios$Q14),
+                              scenario=all.scenarios$scenario,
+                              age=(2019-all.scenarios$YOB),
+                              gender=all.scenarios$gender,
+                              edu=all.scenarios$edu,
+                              score=all.scenarios$score)
+rownames(test.selfreport) <- rownames(all.scenarios)
+
+# Self-report by scenario
+ggplot(test.selfreport,aes(x=self)) + geom_histogram(binwidth=1,color="black",fill="white") + 
+  facet_grid(. ~ scenario) + scale_x_continuous("Self-report of rule usage (Q14)") + 
+  scale_y_continuous("# of Participants") + theme_bw()
+
+# Self-report by gender
+ggplot(test.selfreport,aes(x=self)) + geom_histogram(binwidth=1,color="black",fill="white") + 
+  facet_grid(. ~ gender) + scale_x_continuous("Self-report of rule usage (Q14)") + 
+  scale_y_continuous("# of Participants") + theme_bw()
+
+# Self-report by comprehension score
+x <- test.selfreport[!is.na(test.selfreport$self),]
+ggplot(x,aes(x=as.factor(self),y=score)) + geom_boxplot() + geom_jitter(aes(color=as.factor(self)),height=0.2) +
+  scale_y_continuous("Comprehension Score",breaks=c(0:9)) + scale_x_discrete("Self-report of rule usage (Q14)") + 
+  theme_bw() + theme(legend.position="none")
+rm(x)
+
+# Test using GLM with poisson distribution:
+fit.selfreport <- glm(self ~ scenario + age + gender + edu + score,
+                      test.selfreport, family="poisson")
+#chisq.test(all.scenarios$gender, all.scenarios$Q14)
+summary(fit.selfreport)
+
+# We follow up with a post-hoc test (below) using Spearman correlation:
+cor.test(test.selfreport$self,test.selfreport$score,method="spearman")
+
+
+## Test 5: comprehension score vs. free response explanation (Q12)
+# In free response Q12 we asked participants to explain the rule in their own words
+# These responses were assigned one of 5 codes:
+# correct: describes rule correctly
+# partially correct: description has some errors or is somewhat vague
+# neither: vague description of purpose of the rule rather than how it works, or pure opinion
+# incorrect: incorrect/irrelevant
+# none: no answer, or expresses confusion
+
+# Get codes
+q12.codes <- read.table("../Study 0/20190911_coding_q12.txt",header=T,sep="\t",quote="",row.names=1)
+colnames(q12.codes) <- c("CintID","scenario","Q12","code")
+
+# Remove secondary codes
+q12.codes$code <- factor(gsub(";.*","",q12.codes$code),levels=c("correct","partially correct","neither","incorrect","none"))
+
+# Make relevant data frame
+test.q12 <- data.frame(score=all.scenarios$score,
+                       code=q12.codes[rownames(all.scenarios),"code"],
+                       scenario=all.scenarios$scenario)
+rownames(test.q12) <- rownames(all.scenarios)
+table(test.q12$code)
+
+library(ggplot2)
+ggplot(test.q12,aes(x=code,y=score)) + geom_boxplot() + geom_jitter(aes(color=code),height=0.2) +
+  scale_y_continuous("Comprehension Score",breaks=c(0:9)) + scale_x_discrete("Assigned Code") + theme_bw() +
+  theme(axis.text.x=element_text(angle=45,vjust=0.95),legend.position="none")
+
+# Test using Kruskal-Wallis:
+kruskal.test(score ~ code, test.q12)
+
+# We follow up with 4 post-hoc tests (below) using Mann-Whitney U:
+correct <- droplevels(test.q12[test.q12$code=="correct",])
+partial <- droplevels(test.q12[test.q12$code=="partially correct",])
+neither <- droplevels(test.q12[test.q12$code=="neither",])
+incorrect <- droplevels(test.q12[test.q12$code=="incorrect",])
+none <- droplevels(test.q12[test.q12$code=="none",])
+
+# Correct vs. partially correct
+wilcox.test(score ~ code, as.data.frame(rbind(correct,partial)))
+
+# Correct vs. neither
+wilcox.test(score ~ code, as.data.frame(rbind(correct,neither)))
+
+# Partially correct vs. neither
+wilcox.test(score ~ code, as.data.frame(rbind(partial,neither)))
+
+# Neither vs. incorrect
+wilcox.test(score ~ code, as.data.frame(rbind(neither,incorrect)))
+
+
+## Test 6: comprehension score vs. self-report of rule understanding (Q13)
+# Self-reported participant understanding of the rule was estimated by asking the following question (Q13):
+# To what extent do you agree with the following statement: I am confident I know how to apply the award rule described above?
+# (1)	Strongly agree
+# (2)	Agree
+# (3)	Neither agree nor disagree
+# (4)	Disagree
+# (5)	Strongly disagree
+
+test.q13 <- data.frame(score=all.scenarios$score,
+                       understanding=all.scenarios$Q13)
+rownames(test.q13) <- rownames(all.scenarios)
+
+table(test.q13$understanding)
+
+ggplot(test.q13,aes(x=understanding,y=score)) + geom_boxplot() + geom_jitter(aes(color=understanding),height=0.2) +
+  scale_y_continuous("Comprehension Score",breaks=c(0:9)) + scale_x_discrete("Self-report of rule understanding (Q13)") + 
+  theme_bw() + theme(legend.position="none")
+
+# Test using Kruskal-Wallis:
+kruskal.test(score ~ understanding,test.q13)
+
+# We follow up with six post-hoc tests (below) using Mann-Whitney U:
+sa <- droplevels(test.q13[test.q13$understanding==1,])
+a <- droplevels(test.q13[test.q13$understanding==2,])
+n <- droplevels(test.q13[test.q13$understanding==3,])
+d <- droplevels(test.q13[test.q13$understanding==4,])
+sd <- droplevels(test.q13[test.q13$understanding==5,])
+
+# Strongly agree (1) vs. agree (2)
+wilcox.test(score ~ understanding, as.data.frame(rbind(sa,a)))
+
+# Agree (2) vs. neither agree nor disagree (3)
+wilcox.test(score ~ understanding, as.data.frame(rbind(a,n)))
+
+# Strongly agree (1) vs. disagree (4)
+wilcox.test(score ~ understanding, as.data.frame(rbind(sa,d)))
+
+# Strongly agree (1) vs. strongly disagree (5)
+wilcox.test(score ~ understanding, as.data.frame(rbind(sa,sd)))
+
+# Neither agree nor disagree (3) vs. disagree (4)
+wilcox.test(score ~ understanding, as.data.frame(rbind(n,d)))
+
+# Disagree (4) vs. strongly disagree (5)
+wilcox.test(score ~ understanding, as.data.frame(rbind(d,sd)))
+
+
+## Test 7: comprehension score vs. free response opinion (Q15)
+# Participants were asked for their opinion on the presented rule (Q15).
+# These responses were then coded to assign a single primary code and zero or more secondary codes:
+
+# Primary codes
+# agree: expresses generally positive sentiment towards rule
+# depends: describes both pros and cons of the given rule
+# disagree: expresses generally negative sentiment towards rule
+# none: no answer, or lacks opinion on fairness specifically
+# not understood: expresses confusion about rule
+
+# Secondary codes
+# like: agrees with or likes rule
+# dislike: disagrees with or dislikes rule
+# fair: thinks the rule is fair
+# unfair: thinks the rule is not fair
+# alternative: proposes alternative method to make decision
+# merit: mentions importance of qualifications/merit
+# regurgitation: restates provided examples or rule itself
+
+# Get codes
+q15.codes <- read.table("../Study 0/20190911_coding_q15.txt",header=T,sep="\t",quote="",row.names=1)
+colnames(q15.codes) <- c("CintID","scenario","Q15","code")
+
+# Remove secondary codes
+q15.codes$p.code <- factor(gsub(";.*","",q15.codes$code),levels=c("agree","depends","disagree","not understood","none"))
+#q15.codes$s.codes <- gsub("^; ","",gsub("([a-z, ]*)(;*.*)","\\2",q15.codes$code))
+
+# Make relevant data frame
+test.q15 <- data.frame(score=all.scenarios$score,
+                       code=q15.codes[rownames(all.scenarios),"p.code"],
+                       scenario=all.scenarios$scenario)
+rownames(test.q15) <- rownames(all.scenarios)
+table(test.q15$code)
+
+#x <- test.q15[!is.na(test.q15$code),]
+#library(ggplot2)
+ggplot(test.q15,aes(x=code,y=score)) + geom_boxplot() + geom_jitter(aes(color=code),height=0.2) +
+  scale_y_continuous("Comprehension Score",breaks=c(0:9)) + scale_x_discrete("Primary Code") + theme_bw() +
+  theme(axis.text.x=element_text(angle=45,vjust=0.95),legend.position="none")
+
+# Test using Kruskal-Wallis:
+kruskal.test(score ~ code, test.q15)
+
+# We follow up with 6 post-hoc tests (below) using Mann-Whitney U:
+agree <- droplevels(test.q15[test.q15$code=="agree",])
+depends <- droplevels(test.q15[test.q15$code=="depends",])
+disagree <- droplevels(test.q15[test.q15$code=="disagree",])
+not <- droplevels(test.q15[test.q15$code=="not understood",])
+none <- droplevels(test.q15[test.q15$code=="none",])
+
+# Agree vs. depends
+wilcox.test(score ~ code, as.data.frame(rbind(agree,depends)))
+
+# Agree vs. disagree
+wilcox.test(score ~ code, as.data.frame(rbind(agree,disagree)))
+
+# Agree vs. not understood
+wilcox.test(score ~ code, as.data.frame(rbind(agree,not)))
+
+# Agree vs. none
+wilcox.test(score ~ code, as.data.frame(rbind(agree,none)))
+
+# Depends vs. disagree
+wilcox.test(score ~ code, as.data.frame(rbind(depends,disagree)))
+
+# Depends vs. none
+wilcox.test(score ~ code, as.data.frame(rbind(depends,none)))
+
+# Disagree vs. none
+wilcox.test(score ~ code, as.data.frame(rbind(disagree,none)))
+
+# Not understood vs. none
+wilcox.test(score ~ code, as.data.frame(rbind(not,none)))
+
+
+## Further exploration of free response opinion (Q15)
+# Here we look further into participants' opinion of the rule, specifically with regards to the assigned secondary codes.
+# Recall that responses may have been assigned multiple secondary codes, but that depending on content, not all responses were assigned one. 
+# First we look at comprehension score in the context of whether or not participants (1) liked the rule, and (2) thought the rule was fair. 
+
+l <- grep("; like",q15.codes[rownames(all.scenarios),]$code)
+dl <- grep("; dislike",q15.codes[rownames(all.scenarios),]$code)
+f <- grep("; fair",q15.codes[rownames(all.scenarios),]$code)
+uf <- grep("; unfair",q15.codes[rownames(all.scenarios),]$code)
+m <- grep("; merit",q15.codes[rownames(all.scenarios),]$code)
+alt <- grep("; alternative",q15.codes[rownames(all.scenarios),]$code)
+reg <- grep("; regurgitation",q15.codes[rownames(all.scenarios),]$code)
+
+l.dl <- rbind(data.frame(droplevels(test.q15[l,]),s.code=rep("like",length(l))),
+              data.frame(droplevels(test.q15[dl,]),s.code=rep("dislike",length(dl))))
+f.uf <- rbind(data.frame(droplevels(test.q15[f,]),s.code=rep("fair",length(f))),
+              data.frame(droplevels(test.q15[uf,]),s.code=rep("unfair",length(uf))))
+table(rbind(l.dl,f.uf)[,"s.code"])
+
+p.l.dl <- ggplot(l.dl,aes(x=s.code,y=score)) + geom_boxplot() + geom_jitter(aes(color=s.code),height=0.2) + theme_bw() + 
+  scale_y_continuous("Comprehension Score",breaks=c(0:9)) + scale_x_discrete("Secondary Code") + theme(legend.position="none") + 
+  labs(title="Like vs. Dislike")
+p.f.uf <- ggplot(f.uf,aes(x=s.code,y=score)) + geom_boxplot() + geom_jitter(aes(color=s.code),height=0.2) + theme_bw() + 
+  scale_y_continuous(" ",breaks=c(0:9)) + scale_x_discrete("Secondary Code") + theme(legend.position="none") + 
+  labs(title="Fair vs. Unfair")
+
+grid.arrange(p.l.dl,p.f.uf,nrow=1)
+
+# We run Mann-Whitney U tests on the above:
+# Like vs. dislike
+wilcox.test(score ~ s.code,l.dl)
+
+# Fair vs. unfair
+wilcox.test(score ~ s.code,f.uf)
+
+# Visualizing comprehension scores in the context of the remaining three secondary codes (and lack thereof):
+m.nm <- rbind(data.frame(droplevels(test.q15[m,]),s.code=rep("merit",length(m))),
+              data.frame(droplevels(test.q15[-m,]),s.code=rep("(no merit)",n.respondents-length(m))))
+alt.nalt <- rbind(data.frame(droplevels(test.q15[alt,]),s.code=rep("alternative",length(alt))),
+                  data.frame(droplevels(test.q15[-alt,]),s.code=rep("(no alternative)",n.respondents-length(alt))))
+reg.nreg <- rbind(data.frame(droplevels(test.q15[reg,]),s.code=rep("regurgitation",length(reg))),
+                  data.frame(droplevels(test.q15[-reg,]),s.code=rep("(no regurgitation)",n.respondents-length(reg))))
+table(m.nm$s.code)
+table(alt.nalt$s.code)
+table(reg.nreg$s.code)
+
+p.m.nm <- ggplot(m.nm,aes(x=s.code,y=score)) + geom_boxplot() + geom_jitter(aes(color=s.code),height=0.2) + theme_bw() + 
+  scale_y_continuous("Comprehension Score",breaks=c(0:9)) + scale_x_discrete(" ") + theme(legend.position="none") + labs(title="Merit")
+p.alt.nalt <- ggplot(alt.nalt,aes(x=s.code,y=score)) + geom_boxplot() + geom_jitter(aes(color=s.code),height=0.2) + theme_bw() + 
+  scale_y_continuous(" ",breaks=c(0:9)) + scale_x_discrete("Secondary Code") + theme(legend.position="none") + labs(title="Alternative")
+p.reg.nreg <- ggplot(reg.nreg,aes(x=s.code,y=score)) + geom_boxplot() + geom_jitter(aes(color=s.code),height=0.2) + theme_bw() + 
+  scale_y_continuous("",breaks=c(0:9)) + scale_x_discrete(" ") + theme(legend.position="none") + labs(title="Regurgitation")
+
+grid.arrange(p.m.nm,p.alt.nalt,p.reg.nreg,nrow=1)
+
+# We run Mann-Whitney U tests on the above except "regurgitation," due to small sample size (n=7):
+# Merit vs. (no merit)
+wilcox.test(score ~ s.code,m.nm)
+
+# Alternative vs. (no alternative)
+wilcox.test(score ~ s.code,alt.nalt)
+
+# Regurgitation vs. (no regurgitation)
+#wilcox.test(score ~ s.code,reg.nreg)
+
+
+
+# ====== EFFECTS OF SCENARIO ====== #
+
+## Comprehension score vs. scenario
+kruskal.test(score ~ scenario, all.scenarios) 
+
+## Perceived realism (Q1, scale 1-5) vs. scenario
+chisq.test(all.scenarios$Q1,all.scenarios$scenario)
+table(all.scenarios$Q1,all.scenarios$scenario)
+
+## Coded free response rule explanation (Q12) vs. scenario
+chisq.test(test.q12$code,test.q12$scenario)
+table(test.q12$code,test.q12$scenario)
+
+## Self report of rule understanding (Q13, scale of 1-5) vs. scenario
+chisq.test(all.scenarios$Q13,all.scenarios$scenario)
+table(all.scenarios$Q13,all.scenarios$scenario)
+
+## Self report of rule usage (Q14, scale 1-3) vs. scenario
+chisq.test(all.scenarios$Q14,all.scenarios$scenario)
+table(all.scenarios$Q14,all.scenarios$scenario)
+
+## Coded free response opinion on rule (Q15) vs. scenario
+chisq.test(test.q15$code,test.q15$scenario)
+table(test.q15$code,test.q15$scenario)
+
+# The only measure that may vary with scenario is perceived realism (note that *p* > 0.05, 
+# and in the GLM in section 4.2 there is no such association), 
+# in addition to hours of effort spent on the decision (see secion 3.4). 
+# This suggests that while there may be some differences in the way distinct scenarios are perceived, 
+# these differences do not appear to have any bearing on comprehension and application of the rule.
+
+
+
+# ====== NON-COMPLIANT PARTICIPANTS ====== #
+
+# The question still remains as to why "non-compliant participants," 
+# i.e. those who in Q14 admitted to NOT using only the rule to answer the relevant questions, 
+# behave the way they do. In appears that these participants are less likely to self-report 
+# high understanding of the rule as determined by Q13 (see below).
+# Moreover, better self-reported understanding of the rule (Q13) appears to correlate
+# with correctly explaining the rule (Q12, see below). 
+# Finally, negative participant sentiment towards the rule (Q15) appears to be associated 
+# with rule use (Q14, see below) and rule understanding (Q13, see below).
+
+## Test 1: self-report of rule usage (Q14) vs. self-report of rule understanding (Q13)
+ggplot(all.scenarios,aes(x=Q14,y=Q13)) + geom_jitter(aes(color=Q14)) + theme_bw() + 
+  scale_x_discrete("Self-report of rule use (Q14)",labels=c("Rule only (1)","Combo (2)","Personal\nnotions (3)")) + 
+  scale_y_discrete("Self-report of rule understanding (Q13)") + theme(legend.position="none")
+
+# Using the Kruskal-Wallis test:
+#chisq.test(all.scenarios$Q14, all.scenarios$Q13)
+kruskal.test(as.numeric(Q13) ~ Q14, all.scenarios)
+
+
+## Test 2: self-report of rule understanding (Q13) vs. free response explanation (Q12)
+test.q12.q13 <- data.frame(Q12=q12.codes[rownames(all.scenarios),]$code,
+                           Q13=all.scenarios$Q13)
+rownames(test.q12.q13) <- rownames(all.scenarios)
+ggplot(test.q12.q13,aes(x=Q13)) + geom_histogram(stat="count",color="black",fill="white") + 
+  facet_grid(. ~ Q12) + scale_x_discrete("Self-report of rule understanding (Q13)") + 
+  scale_y_continuous("# of Participants") + theme_bw()
+
+# We assess the relationship using a the Kruskal-Wallis test:
+kruskal.test(as.numeric(Q13) ~ Q12,test.q12.q13)
+
+# We follow up with six post-hoc tests using Mann-Whitney U:
+correct <- droplevels(test.q12.q13[test.q12.q13$Q12=="correct",])
+partial <- droplevels(test.q12.q13[test.q12.q13$Q12=="partially correct",])
+neither <- droplevels(test.q12.q13[test.q12.q13$Q12=="neither",])
+incorrect <- droplevels(test.q12.q13[test.q12.q13$Q12=="incorrect",])
+none <- droplevels(test.q12.q13[test.q12.q13$Q12=="none",])
+
+# Correct vs. partially correct
+wilcox.test(as.numeric(Q13) ~ Q12, as.data.frame(rbind(correct,partial)))
+
+# Correct vs. neither
+wilcox.test(as.numeric(Q13) ~ Q12, as.data.frame(rbind(correct,neither)))
+
+# Correct vs. incorrect
+wilcox.test(as.numeric(Q13) ~ Q12, as.data.frame(rbind(correct,incorrect)))
+
+# Partially correct vs. neither
+wilcox.test(as.numeric(Q13) ~ Q12, as.data.frame(rbind(partial,neither)))
+
+# Partially correct vs. incorrect
+wilcox.test(as.numeric(Q13) ~ Q12, as.data.frame(rbind(partial,incorrect)))
+
+# Neither vs. incorrect
+wilcox.test(as.numeric(Q13) ~ Q12, as.data.frame(rbind(neither,incorrect)))
+
+
+## Test 3: self-report of rule usage (Q14) vs. free response opinion (Q15)
+q14.q15 <- data.frame(test.q15[rownames(all.scenarios),],Q14=all.scenarios$Q14)
+table(q14.q15[,c("Q14","code")])
+
+ggplot(q14.q15,aes(x=Q14)) + geom_histogram(stat="count",color="black",fill="white") + 
+  theme_bw() + facet_grid(. ~ code) + scale_y_continuous("# of Participants") + 
+  scale_x_discrete("Self-report of rule use (Q14)") #,labels=c("Rule only (1)","Combo (2)","Personal\nnotions (3)"))
+
+ggplot(q14.q15,aes(x=Q14,y=score)) + geom_boxplot() + geom_jitter(aes(color=Q14),height=0.2) + theme_bw() + 
+  facet_grid(. ~ code) + scale_x_discrete("Self-report of rule use (Q14)") + #,labels=c("Rule only (1)","Combo (2)","Personal\nnotions (3)")) + 
+  scale_y_continuous("Comprehension Score",breaks=c(0:9)) + theme(legend.position="none")
+
+# Using Kruskal-Wallis test:
+#chisq.test(q14.q15$Q14,q14.q15$code)
+kruskal.test(Q14 ~ code,q14.q15)
+
+
+## Test 4: self-report of rule understanding (Q13) vs. free response opinion (Q15)
+q13.q15 <- data.frame(test.q15[rownames(all.scenarios),],Q13=all.scenarios$Q13)
+table(q13.q15[,c("Q13","code")])
+
+ggplot(q13.q15,aes(x=Q13)) + geom_histogram(stat="count",color="black",fill="white") + 
+  theme_bw() + facet_grid(. ~ code) + scale_y_continuous("# of Participants") + 
+  scale_x_discrete("Self-report of rule understanding (Q13)") #,labels=c("Rule only (1)","Combo (2)","Personal\nnotions (3)"))
+
+# Using Kruskal-Wallis test:
+#chisq.test(q13.q15$Q13,q13.q15$code)
+kruskal.test(Q13 ~ code,q13.q15)
+
+
+
+# ====== MULTI VISUALIZATION ====== #
+
+quad <- data.frame(score=all.scenarios$score,
+                   Q12=q12.codes[rownames(all.scenarios),]$code,
+                   Q13=all.scenarios$Q13,
+                   Q14=all.scenarios$Q14,
+                   Q15=q15.codes[rownames(all.scenarios),]$p.code)
+#quad$Q13.condensed <- factor(gsub("[12]","Understood rule",gsub("[345]","Did not understand rule",quad$Q13)),
+#                             levels=c("Understood rule","Did not understand rule"))
+quad$Q13.condensed <- factor(gsub("[12]","Understood rule",gsub("[45]","Did not understand rule",gsub("3","Neither",quad$Q13))),
+                             levels=c("Understood rule","Neither","Did not understand rule"))
+quad$Q14.condensed <- factor(gsub("1","Used rule only",gsub("[23]","Used personal notions of fairness",quad$Q14)),
+                             levels=c("Used rule only","Used personal notions of fairness"))
+quad <- quad[-which(is.na(quad$Q14)),]
+
+table(quad$Q13.condensed,quad$Q14.condensed)
+ggplot(quad,aes(x=Q15,y=score)) + geom_boxplot() + geom_jitter(aes(color=Q15),height=0.2) + 
+  scale_x_discrete("Q15 (opinion of rule) Primary Code",labels=gsub(" ","\n",levels(quad$Q15))) +
+  scale_y_continuous("Comprehension Score",breaks=c(0:9)) + theme_bw() + 
+  facet_grid(Q13.condensed ~ Q14.condensed) + theme(legend.position="none")
+
+
+
+
+
+
+
+
+
+
+
+
+#######################################
+#######################################
+#                                     #
+#            Study-2 (Full)           #
+#        Published at ICML 2020       #
+#                                     #
+#######################################
+#######################################
 
 
 
