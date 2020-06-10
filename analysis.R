@@ -34,7 +34,6 @@ library(psych)
 
 
 
-
 # =================================== #
 #            DATA/FORMATTING          #
 # =================================== #
@@ -416,8 +415,8 @@ wilcox.test(Q2 ~ scenario,droplevels(all.scenarios[all.scenarios$scenario!="AP",
 wilcox.test(Q2 ~ scenario,droplevels(all.scenarios[all.scenarios$scenario!="EA",])) #******
 wilcox.test(Q2 ~ scenario,droplevels(all.scenarios[all.scenarios$scenario!="HR",])) #******
 
-
 rm(list=ls())
+
 
 
 
@@ -784,8 +783,11 @@ kruskal.test(score ~ Q14,all.defs) #******
 
 # Post-hoc Mann-Whitney U
 rule <-  droplevels(all.defs[all.defs$Q14==1,])
+rule <- rule[!(is.na(rule$Q14)),]
 combo <- droplevels(all.defs[all.defs$Q14==2,])
+combo <- combo[!(is.na(combo$Q14)),]
 personal <- droplevels(all.defs[all.defs$Q14==3,])
+personal <- personal[!(is.na(personal$Q14)),]
 wilcox.test(score ~ Q14, as.data.frame(rbind(rule,combo))) #******
 wilcox.test(score ~ Q14, as.data.frame(rbind(rule,personal))) #******
 wilcox.test(score ~ Q14, as.data.frame(rbind(personal,combo)))
