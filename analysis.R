@@ -9,15 +9,6 @@
 # Conference: https://icml.cc/Conferences/2020
 
 
-
-# NOTE:  #****** = significant test
-
-
-
-# ================================== #
-#                SETUP               #
-# ================================== #
-
 library(scales)
 library(ggplot2)
 library(reshape2)
@@ -26,20 +17,26 @@ library(gridExtra)
 library(psych)
 
 
-#######################################
-#######################################
-#                                     #
-#           Study-1 (Pilot)           #
-#   Abstract published at AIES 2020   #
-#                                     #
-#######################################
-#######################################
+# NOTE:  #****** = significant test
+
+
+
+
+
+##############################################################################
+##############################################################################
+#                                                                            #
+#                              Study-1 (Pilot)                               #
+#                    Abstract published at AIES 2020                         #
+#                                                                            #
+##############################################################################
+##############################################################################
 
 
 
 
 # =================================== #
-#           INITIAL DATA GRAB         #
+#            DATA/FORMATTING          #
 # =================================== #
 
 # ====== GET DATA ====== #
@@ -78,6 +75,7 @@ levels(all.scenarios$edu)
 # [7] "Some high school credit, no diploma or equivalent"         "Trade/technical/vocational training"
 all.scenarios$edu <- factor(all.scenarios$edu,levels=levels(all.scenarios$edu)[c(7,3,6,8,1,2,4,5)])
 
+# Domain experience
 all.scenarios$exp.hr <- as.factor(all.scenarios$exp.hr)
 all.scenarios$exp.mng <- as.factor(all.scenarios$exp.mng)
 all.scenarios$exp.edu <- as.factor(all.scenarios$exp.edu)
@@ -86,9 +84,9 @@ all.scenarios$exp.cs <- as.factor(all.scenarios$exp.cs)
 all.scenarios$exp.ml <- as.factor(all.scenarios$exp.ml)
 
 # Remove participants who took particularly long (over 2hrs)
-#remove <- grep("2159e15c-5da7-0ae3-a3eb-d772e28fdb81",rownames(all.scenarios))
 remove <- which(all.scenarios$Duration > 10000)
 all.scenarios <- droplevels(all.scenarios[-remove,])
+
 n.respondents <- dim(all.scenarios)[1]  # n = 147
 table(all.scenarios$scenario)
 # AP EA HR 
@@ -144,11 +142,20 @@ summary(all.scenarios$score)
 sd(all.scenarios$score)
 
 # Proportion of respondents (out of 147) answering each question correctly:
-x <- data.frame(Percent=colSums(score.sheet)/n.respondents)
-x$Percent <- percent(x$Percent)
-colnames(x) <- c("Percent Correct")
-x
-#rm(x)
+pct.correct <- data.frame(Percent=colSums(score.sheet)/n.respondents)
+pct.correct$Percent <- percent(pct.correct$Percent)
+colnames(pct.correct) <- c("Percent Correct")
+pct.correct
+#     Percent Correct
+# Q3            70.1%
+# Q4            53.7%
+# Q5            62.6%
+# Q6            66.0%
+# Q7            77.6%
+# Q8            64.6%
+# Q9            74.1%
+# Q10           68.0%
+# Q11           82.3%
 
 # Respondents answering each question correctly, split by scenario (each column comprises all 147 respondents)
 score.sheet$CintID <- all.scenarios$CintID
@@ -220,6 +227,8 @@ bbmle::AICtab(m1,m2,m3,base=TRUE,weights=TRUE,sort=TRUE,mnames=model.names)
 
 # Effect size - GLM uses poisson distribution, so ES = exp(model estimate)
 exp(m1$coefficients[11])
+# eduBachelor's and above 
+#                1.400451
 
 
 # ====== RULE EXPLANATION [Free response] (Q12) ====== #
@@ -401,39 +410,37 @@ ggplot(all.scenarios,aes(x=Q2)) + geom_histogram(binwidth=1,color="black",fill="
   scale_y_continuous("# of Participants") + theme_bw() +
   theme(legend.position="bottom",axis.title.x=element_text(size=8),axis.title.y=element_text(size=8),
         strip.text.x=element_text(margin = margin(0.05,0,0.05,0,"cm")))
-ggsave("q2.png",height=1.25,width=3)
+ggsave("data/figs-study-1/q2.png",height=1.25,width=3)
 kruskal.test(Q2 ~ scenario,all.scenarios) #******
 wilcox.test(Q2 ~ scenario,droplevels(all.scenarios[all.scenarios$scenario!="AP",]))
 wilcox.test(Q2 ~ scenario,droplevels(all.scenarios[all.scenarios$scenario!="EA",])) #******
 wilcox.test(Q2 ~ scenario,droplevels(all.scenarios[all.scenarios$scenario!="HR",])) #******
 
 
+rm(list=ls())
 
 
 
 
-
-
-
-#######################################
-#######################################
-#                                     #
-#            Study-2 (Full)           #
-#        Published at ICML 2020       #
-#                                     #
-#######################################
-#######################################
+##############################################################################
+##############################################################################
+#                                                                            #
+#                                Study-2 (Full)                              #
+#                            Published at ICML 2020                          #
+#                                                                            #
+##############################################################################
+##############################################################################
 
 
 
 # =================================== #
-#           INITIAL DATA GRAB         #
+#            DATA/FORMATTING          #
 # =================================== #
 
 # ====== GET DATA ====== #
 
-setwd("<path to data>")
-all.defs <- read.table("<data file.txt>",header=TRUE,quote="",sep="\t")
+setwd("C:/Users/Debjani Saha/Documents/University of Maryland/Projects/Alg Fairness/20200127 ICML submission (02-06)")
+all.defs <- read.table("data/study-2_full.txt",header=TRUE,quote="",sep="\t")
 rownames(all.defs) <- all.defs$CintID
 
 
@@ -464,7 +471,6 @@ all.defs$exp.ml <- factor(all.defs$exp.ml)
 # Fairness definitions
 all.defs$def <- factor(all.defs$def,levels=c("DP","FNR","FPR","EO"))
 table(all.defs$def)
-
 #  DP FNR FPR  EO 
 #  95  85  88  81
 
@@ -495,13 +501,6 @@ rm(list=ls()[grep(".answers",ls())])
 #         INTERNAL VALIDITY          #
 # ================================== #
 
-### Resources for internal validity
-### https://mattchoward.com/introduction-to-cronbachs-alpha/
-### https://mattchoward.com/calculating-cronbachs-alpha-in-r/
-### https://rpubs.com/hauselin/reliabilityanalysis
-### https://www.researchgate.net/post/Is_it_correct_to_use_Cronbach_s_Alpha_to_assess_the_internal_consistency_of_a_questionnaire_with_binary_data_yes_no
-### https://en.wikipedia.org/wiki/Item_response_theory
-
 # Assessed using two measures: 
 # Cronbach's alpha ("raw_alpha")
 # Item-total correlation ("r.cor")
@@ -509,8 +508,10 @@ responses <- score.sheet[,colnames(answer.key)]
 responses[responses=="TRUE"] <- 1
 responses$def <- all.defs$def
 
+# All fairness definitions (DP, FNR, FPR, EO)
 psych::alpha(droplevels(responses[,c(1:9)]),check.keys=TRUE)  # all fairness defintions
 
+# Split by definition
 psych::alpha(droplevels(responses[all.defs$def=="DP",c(1:9)]),check.keys=TRUE)  # DP
 psych::alpha(droplevels(responses[all.defs$def=="FNR",c(1:9)]),check.keys=TRUE)  # FNR
 psych::alpha(droplevels(responses[all.defs$def=="FPR",c(1:9)]),check.keys=TRUE)  # FPR
@@ -524,6 +525,23 @@ psych::alpha(droplevels(responses[all.defs$def=="EO",c(1:9)]),check.keys=TRUE)  
 
 # Use ITERATIVE approach to drop questions
 # Drop question with lowest item-total correlation, reassess, and continue till no items have item-total cor < 0.3
+
+
+#############!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#############
+defs <- c("DP","FNR","FPR","EO")
+questions.to.keep <- list()
+for (i in c(1:length(defs))) {
+  current.def <- droplevels(responses[as.character(all.defs$def)==defs[i],c(1:9)])
+  current.def.iv <- psych::alpha(current.def,check.keys=TRUE)
+  while (sum(current.def.iv$item.stats$r.cor<0.3)>0) {
+    print(rownames(current.def.iv$response.freq)[which.min(current.def.iv$item.stats$r.cor)])
+    current.def <- current.def[,-which.min(current.def.iv$item.stats$r.cor)]
+    current.def.iv <- psych::alpha(current.def,check.keys=TRUE)
+  }
+  questions.to.keep[[i]] <- rownames(current.def.iv$response.freq)
+}
+#############!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#############
+
 # This approach yields the following questions to be DROPPED per defintion:
 # DP: Q5, Q6
 # FNR: Q6, Q8, Q9, Q10, Q11
@@ -570,18 +588,25 @@ ggplot(all.defs,aes(x=def,y=score)) + geom_boxplot() + theme_bw() + #geom_jitter
   theme(legend.position="none",axis.title.x=element_text(size=10),axis.title.y=element_text(size=10)) + 
   scale_x_discrete("Fairness Defintiion",labels=paste(gsub(" and","\nand",gsub(", ", ",\n", levels(all.defs$def))),"\n(",table(all.defs$def),")",sep="")) + 
   scale_y_continuous("Comprehension Score",breaks=c(0,0.25,0.50,0.75,1))
-ggsave("scores.png",height=2.2,width=3.65)
-
+ggsave("data/figs-study-2/scores.png",height=2.2,width=3.65)
 
 # Proportion of respondents (out of 349) answering each question correctly:
-x <- data.frame(Percent=colSums(score.sheet,na.rm=TRUE)/n.respondents)
-x$Percent <- percent(x$Percent)
-colnames(x) <- c("Percent Correct")
-x
-#rm(x)
+pct.correct <- data.frame(Percent=colSums(score.sheet,na.rm=TRUE)/n.respondents)
+pct.correct$Percent <- percent(pct.correct$Percent)
+colnames(pct.correct) <- c("Percent Correct")
+pct.correct
+#     Percent Correct
+# Q3            45.8%
+# Q4            35.8%
+# Q5            55.3%
+# Q6            61.0%
+# Q7            43.3%
+# Q8            48.1%
+# Q9            75.9%
+# Q10           63.6%
+# Q11           61.3%
 
-# Respondents answering each question correctly, split by definition
-# (each column comprises all 349 respondents)
+# Respondents answering each question correctly, split by definition (each column comprises all 349 respondents)
 score.sheet$CintID <- all.defs$CintID
 score.sheet$def <- all.defs$def
 score.sheet.melt <- melt(score.sheet,id.vars=c("CintID","def"))
@@ -650,12 +675,12 @@ ggplot(test.demo,aes(x=edu,y=score)) + geom_boxplot() + theme_bw() +
   scale_x_discrete("Education level",labels=paste(gsub(" and","\nand",gsub(", ", ",\n", levels(test.demo$edu))),
                                                   "\n(",table(test.demo$edu),")",sep="")) + 
   scale_y_continuous("Comprehension Score",breaks=c(0,0.25,0.5,0.75,1))
-ggsave("edu.png",height=2.2,width=3.65)
+ggsave("data/figs-study-2/edu.png",height=2.2,width=3.65)
 
-library(broom)
-library(bbmle)
-library(lm.beta)
-library(rsq)
+#library(broom)
+#library(bbmle)
+#library(lm.beta)
+#library(rsq)
 
 m1 <- glm(score ~ gender + age + eth + edu + def, test.demo, family="gaussian")
 m2 <- glm(score ~ gender + age + eth + edu, test.demo, family="gaussian")
@@ -690,7 +715,7 @@ cbind(summary(m4)$coefficients[,c(1,4)],confint(m4))[,c(1,3,4,2)]
 # ====== RULE EXPLANATION [Free response] (Q12) ====== #
 
 # Get qualitative codes
-q12.codes <- read.table("<q12 coding data file.txt>",quote="",header=TRUE,sep="\t",row.names=1)
+q12.codes <- read.table("data/study-2_full_q12coding.txt",quote="",header=TRUE,sep="\t",row.names=1)
 
 # Remove secondary codes
 q12.codes$pcode <- factor(gsub(";.*","",q12.codes$codes),levels=c("correct","partially correct","neither","incorrect","none"))
@@ -705,7 +730,7 @@ table(test.q12$code)
 ggplot(test.q12,aes(x=code,y=score)) + geom_boxplot() + scale_y_continuous("Comprehension Score",c(0,0.25,0.5,0.75,1)) + theme_bw() +
   scale_x_discrete("Assigned Code (Q12)",labels=paste(gsub(" ", "\n", levels(test.q12$code)),"\n(",table(test.q12$code),")",sep="")) + 
   theme(legend.position="none",axis.title.x=element_text(size=8),axis.title.y=element_text(size=8))
-ggsave("q12.png",height=1.9,width=3)
+ggsave("data/figs-study-2/q12.png",height=1.9,width=3)
 
 # Kruskal-Wallis
 kruskal.test(score ~ code, test.q12) #******
@@ -739,7 +764,7 @@ ggplot(all.defs,aes(x=Q13,y=score)) + geom_boxplot() +  theme_bw() +
                                     "\n(",table(all.defs$Q13),")",sep=""))) + 
   scale_y_continuous("Comprehension Score",breaks=c(0,0.25,0.5,0.75,1)) + 
   theme(legend.position="none",axis.title.x=element_text(size=8),axis.title.y=element_text(size=8))
-ggsave("q13.png",height=1.9,width=3)
+ggsave("data/figs-study-2/q13.png",height=1.9,width=3)
 
 # Spearman correlation - multiply by -1 to reverse the order of Q13 responses
 # this way if those who report higher understanding (1 on Likert scale) also have higher score, there will be a positive correlation
@@ -752,7 +777,7 @@ test.q14 <- droplevels(all.defs[!(is.na(all.defs$Q14)),])
 ggplot(test.q14,aes(x=as.factor(Q14),y=score)) + geom_boxplot() + theme_bw() + scale_y_continuous("Comprehension Score",breaks=c(0,0.25,0.5,0.75,1)) + 
   scale_x_discrete("Self-report of usage (Q14)",labels=paste(c("rule\nonly","combination","personal\nnotions"),"\n(",table(test.q14$Q14),")",sep="")) + 
   theme(legend.position="none",axis.title.x=element_text(size=8),axis.title.y=element_text(size=8))
-ggsave("q14.png",height=1.9,width=3)
+ggsave("data/figs-study-2/q14.png",height=1.9,width=3)
 
 # Kruskal-Wallis
 kruskal.test(score ~ Q14,all.defs) #******
@@ -774,7 +799,7 @@ ggplot(all.defs,aes(x=Q15,y=score)) + geom_boxplot() +  theme_bw() +
                                     "\n(",table(all.defs$Q15),")",sep=""))) + 
   scale_y_continuous("Comprehension Score",breaks=c(0,0.25,0.5,0.75,1)) + 
   theme(legend.position="none",axis.title.x=element_text(size=8),axis.title.y=element_text(size=8))
-ggsave("q15.png",height=1.9,width=3)
+ggsave("data/figs-study-2/q15.png",height=1.9,width=3)
 
 # Spearman correlation - multiply by -1 to reverse the order of Q15 responses
 # this way if those who report higher liking (1 on Likert scale) also have higher score, there will be a positive correlation
@@ -789,7 +814,7 @@ ggplot(all.defs,aes(x=Q16,y=score)) + geom_boxplot() +  theme_bw() +
                                     "\n(",table(all.defs$Q16),")",sep=""))) + 
   scale_y_continuous("Comprehension Score",c(0,0.25,0.5,0.75,1)) + 
   theme(legend.position="none",axis.title.x=element_text(size=8),axis.title.y=element_text(size=8))
-ggsave("q16.png",height=1.9,width=3)
+ggsave("data/figs-study-2/q16.png",height=1.9,width=3)
 
 # Spearman correlation - multiply by -1 to reverse the order of Q16 responses
 # this way if those who report higher agreement with rule (1 on Likert scale) also have higher score, there will be a positive correlation
@@ -824,7 +849,7 @@ ggplot(non.comp,aes(x=Q14)) + geom_bar(stat="count",position="fill",width=0.5,ae
   theme(legend.position="bottom",legend.box.spacing=unit(-0,"cm"),legend.key.size=unit(0.35,"cm"),
         legend.title=element_text(size=8),legend.text=element_text(size=8),legend.justification="left",
         axis.title.y=element_blank(),axis.title.x=element_text(size=8)) + coord_flip() + guides(fill=guide_legend(reverse=TRUE))
-ggsave("nc_q12q14.png",height=1.25,width=3)
+ggsave("data/figs-study-2/nc_q12q14.png",height=1.25,width=3)
 
 # Q14 x Q13
 ggplot(non.comp,aes(x=Q14)) + geom_bar(stat="count",position="fill",width=0.5,aes(fill=Q13)) + theme_bw() + 
@@ -833,7 +858,7 @@ ggplot(non.comp,aes(x=Q14)) + geom_bar(stat="count",position="fill",width=0.5,ae
   theme(legend.position="bottom",legend.box.spacing=unit(-0,"cm"),legend.key.size=unit(0.35,"cm"),
         legend.title=element_text(size=8),legend.text=element_text(size=8),legend.justification="left",
         axis.title.y=element_blank(),axis.title.x=element_text(size=8)) + coord_flip() + guides(fill=guide_legend(reverse=TRUE))
-ggsave("nc_q13q14.png",height=1.25,width=3)
+ggsave("data/figs-study-2/nc_q13q14.png",height=1.25,width=3)
 
 # Q14 x Q15
 ggplot(non.comp,aes(x=Q14)) + geom_bar(stat="count",position="fill",width=0.5,aes(fill=Q15)) + theme_bw() + 
@@ -842,7 +867,7 @@ ggplot(non.comp,aes(x=Q14)) + geom_bar(stat="count",position="fill",width=0.5,ae
   theme(legend.position="bottom",legend.box.spacing=unit(-0,"cm"),legend.key.size=unit(0.35,"cm"),
         legend.title=element_text(size=8),legend.text=element_text(size=8),legend.justification="left",
         axis.title.y=element_blank(),axis.title.x=element_text(size=8)) + coord_flip() + guides(fill=guide_legend(reverse=TRUE))
-ggsave("nc_q15q14.png",height=1.25,width=3)
+ggsave("data/figs-study-2/nc_q15q14.png",height=1.25,width=3)
 
 # Q14 x Q16
 ggplot(non.comp,aes(x=Q14)) + geom_bar(stat="count",position="fill",width=0.5,aes(fill=Q16)) + theme_bw() + 
@@ -851,7 +876,7 @@ ggplot(non.comp,aes(x=Q14)) + geom_bar(stat="count",position="fill",width=0.5,ae
   theme(legend.position="bottom",legend.box.spacing=unit(-0,"cm"),legend.key.size=unit(0.35,"cm"),
         legend.title=element_text(size=8),legend.text=element_text(size=8),legend.justification="left",
         axis.title.y=element_blank(),axis.title.x=element_text(size=8)) + coord_flip() + guides(fill=guide_legend(reverse=TRUE))
-ggsave("nc_q16q14.png",height=1.25,width=3)
+ggsave("data/figs-study-2/nc_q16q14.png",height=1.25,width=3)
 
 chisq.test(non.comp$Q12,non.comp$Q14) #******
 kruskal.test(non.comp$Q13,non.comp$Q14) #******
