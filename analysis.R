@@ -41,7 +41,6 @@ library(psych)
 
 # ====== GET DATA ====== #
 
-setwd("C:/Users/Debjani Saha/Documents/University of Maryland/Projects/Alg Fairness/20200127 ICML submission (02-06)")
 all.scenarios <- read.table("data/study-1_pilot.txt",header=T,sep="\t",quote="",row.names=1)
 
 
@@ -439,7 +438,6 @@ rm(list=ls())
 
 # ====== GET DATA ====== #
 
-setwd("C:/Users/Debjani Saha/Documents/University of Maryland/Projects/Alg Fairness/20200127 ICML submission (02-06)")
 all.defs <- read.table("data/study-2_full.txt",header=TRUE,quote="",sep="\t")
 rownames(all.defs) <- all.defs$CintID
 
@@ -531,7 +529,6 @@ psych::alpha(droplevels(responses[eo.ids,c(1:9)]),check.keys=TRUE)  # EO
 # Drop question with lowest item-total correlation, reassess, and continue till no questions have item-total correlation < 0.3
 defs <- names(table(all.defs$def))  # DP, FNR, FPR, EO
 questions.to.keep <- list()
-names(questions.to.keep) <- names(table(all.defs$def))
 for (i in c(1:length(defs))) {
   print(defs[i])
   current.def <- droplevels(responses[as.character(all.defs$def)==defs[i],c(1:9)])
@@ -543,6 +540,7 @@ for (i in c(1:length(defs))) {
   }
   questions.to.keep[[i]] <- rownames(current.def.iv$response.freq)
 }
+names(questions.to.keep) <- names(table(all.defs$def))
 
 # This approach yields the following questions to be DROPPED per definition:
 # DP: Q5, Q6
@@ -745,9 +743,9 @@ wilcox.test(score ~ code, as.data.frame(rbind(correct,none))) #******
 
 wilcox.test(score ~ code, as.data.frame(rbind(partial,incorrect)))
 wilcox.test(score ~ code, as.data.frame(rbind(partial,neither))) #******
-wilcox.test(score ~ code, as.data.frame(rbind(partial,none))) #******
+wilcox.test(score ~ code, as.data.frame(rbind(partial,none)))
 
-wilcox.test(score ~ code, as.data.frame(rbind(neither,incorrect)))
+wilcox.test(score ~ code, as.data.frame(rbind(neither,incorrect))) #******
 wilcox.test(score ~ code, as.data.frame(rbind(neither,none)))
 
 wilcox.test(score ~ code, as.data.frame(rbind(incorrect,none)))
@@ -787,7 +785,7 @@ combo <- combo[!(is.na(combo$Q14)),]
 personal <- droplevels(all.defs[all.defs$Q14==3,])
 personal <- personal[!(is.na(personal$Q14)),]
 wilcox.test(score ~ Q14, as.data.frame(rbind(rule,combo))) #******
-wilcox.test(score ~ Q14, as.data.frame(rbind(rule,personal))) #******
+wilcox.test(score ~ Q14, as.data.frame(rbind(rule,personal)))
 wilcox.test(score ~ Q14, as.data.frame(rbind(personal,combo)))
 
 
