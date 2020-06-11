@@ -512,25 +512,28 @@ responses$def <- all.defs$def
 psych::alpha(droplevels(responses[,c(1:9)]),check.keys=TRUE)  # all fairness defintions
 
 # Split by definition
-psych::alpha(droplevels(responses[all.defs$def=="DP",c(1:9)]),check.keys=TRUE)  # DP
-psych::alpha(droplevels(responses[all.defs$def=="FNR",c(1:9)]),check.keys=TRUE)  # FNR
-psych::alpha(droplevels(responses[all.defs$def=="FPR",c(1:9)]),check.keys=TRUE)  # FPR
-psych::alpha(droplevels(responses[all.defs$def=="EO",c(1:9)]),check.keys=TRUE)  # EO
+dp.ids <- rownames(all.defs)[as.character(all.defs$def)=="DP"]
+fnr.ids <- rownames(all.defs)[as.character(all.defs$def)=="FNR"]
+fpr.ids <- rownames(all.defs)[as.character(all.defs$def)=="FPR"]
+eo.ids <- rownames(all.defs)[as.character(all.defs$def)=="EO"]
+psych::alpha(droplevels(responses[dp.ids,c(1:9)]),check.keys=TRUE)  # DP
+psych::alpha(droplevels(responses[fnr.ids,c(1:9)]),check.keys=TRUE)  # FNR
+psych::alpha(droplevels(responses[fpr.ids,c(1:9)]),check.keys=TRUE)  # FPR
+psych::alpha(droplevels(responses[eo.ids,c(1:9)]),check.keys=TRUE)  # EO
 
-# Poor item-total correlations
+# Poor item-total correlations (< 0.3)
 # DP: Q5, Q6
 # FNR: Q6, Q7, Q8, Q9, Q10, Q11
 # FPR: Q7, Q9
 # EO: Q4, Q6, Q9
 
 # Use ITERATIVE approach to drop questions
-# Drop question with lowest item-total correlation, reassess, and continue till no items have item-total cor < 0.3
-
-
-#############!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#############
-defs <- c("DP","FNR","FPR","EO")
+# Drop question with lowest item-total correlation, reassess, and continue till no questions have item-total correlation < 0.3
+defs <- names(table(all.defs$def))  # DP, FNR, FPR, EO
 questions.to.keep <- list()
+names(questions.to.keep) <- names(table(all.defs$def))
 for (i in c(1:length(defs))) {
+  print(defs[i])
   current.def <- droplevels(responses[as.character(all.defs$def)==defs[i],c(1:9)])
   current.def.iv <- psych::alpha(current.def,check.keys=TRUE)
   while (sum(current.def.iv$item.stats$r.cor<0.3)>0) {
@@ -540,35 +543,29 @@ for (i in c(1:length(defs))) {
   }
   questions.to.keep[[i]] <- rownames(current.def.iv$response.freq)
 }
-#############!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#############
 
-# This approach yields the following questions to be DROPPED per defintion:
+# This approach yields the following questions to be DROPPED per definition:
 # DP: Q5, Q6
-# FNR: Q6, Q8, Q9, Q10, Q11
+# FNR: Q6, Q7, Q9, Q10, Q11
 # FPR: Q7, Q9
-# EO: Q4, Q6
+# EO: Q6
 
-# Reassess validity after dropping the above
-psych::alpha(droplevels(responses[all.defs$def=="DP",c(1:3,6:9)]),check.keys=TRUE)  # DP
-psych::alpha(droplevels(responses[all.defs$def=="FNR",c(1:3,5)]),check.keys=TRUE)  # FNR
-psych::alpha(droplevels(responses[all.defs$def=="FPR",c(1:4,6,8,9)]),check.keys=TRUE)  # FPR
-psych::alpha(droplevels(responses[all.defs$def=="EO",c(1,3,5:9)]),check.keys=TRUE)  # EO
+# Reassess validity after dropping identified items
+psych::alpha(droplevels(responses[dp.ids,questions.to.keep$DP]),check.keys=TRUE)  # DP
+psych::alpha(droplevels(responses[fnr.ids,questions.to.keep$FNR]),check.keys=TRUE)  # FNR
+psych::alpha(droplevels(responses[fpr.ids,questions.to.keep$FPR]),check.keys=TRUE)  # FPR
+psych::alpha(droplevels(responses[eo.ids,questions.to.keep$EO]),check.keys=TRUE)  # EO
 
 # Update scores
-dp.ids <- rownames(all.defs)[all.defs$def=="DP"]
-fnr.ids <- rownames(all.defs)[all.defs$def=="FNR"]
-fpr.ids <- rownames(all.defs)[all.defs$def=="FPR"]
-eo.ids <- rownames(all.defs)[all.defs$def=="EO"]
+dp.adj.score <- all.defs[dp.ids,questions.to.keep$DP] == answer.key[dp.ids,questions.to.keep$DP]
+fnr.adj.score <- all.defs[fnr.ids,questions.to.keep$FNR] == answer.key[fnr.ids,questions.to.keep$FNR]
+fpr.adj.score <- all.defs[fpr.ids,questions.to.keep$FPR] == answer.key[fpr.ids,questions.to.keep$FPR]
+eo.adj.score <- all.defs[eo.ids,questions.to.keep$EO] == answer.key[eo.ids,questions.to.keep$EO]
 
-dp.adj.score <- all.defs[dp.ids,c("Q3","Q4","Q7","Q8","Q9","Q10","Q11")] == answer.key[dp.ids,c("Q3","Q4","Q7","Q8","Q9","Q10","Q11")]
-fnr.adj.score <- all.defs[fnr.ids,c("Q3","Q4","Q5","Q7")] == answer.key[fnr.ids,c("Q3","Q4","Q5","Q7")]
-fpr.adj.score <- all.defs[fpr.ids,c("Q3","Q4","Q5","Q6","Q8","Q10","Q11")] == answer.key[fpr.ids,c("Q3","Q4","Q5","Q6","Q8","Q10","Q11")]
-eo.adj.score <- all.defs[eo.ids,c("Q3","Q5","Q7","Q8","Q9","Q10","Q11")] == answer.key[eo.ids,c("Q3","Q5","Q7","Q8","Q9","Q10","Q11")]
-
-dp.adj.score <- rowSums(dp.adj.score,na.rm=TRUE)/7
-fnr.adj.score <- rowSums(fnr.adj.score,na.rm=TRUE)/4
-fpr.adj.score <- rowSums(fpr.adj.score,na.rm=TRUE)/7
-eo.adj.score <- rowSums(eo.adj.score,na.rm=TRUE)/7
+dp.adj.score <- rowSums(dp.adj.score,na.rm=TRUE)/length(questions.to.keep$DP)
+fnr.adj.score <- rowSums(fnr.adj.score,na.rm=TRUE)/length(questions.to.keep$FNR)
+fpr.adj.score <- rowSums(fpr.adj.score,na.rm=TRUE)/length(questions.to.keep$FPR)
+eo.adj.score <- rowSums(eo.adj.score,na.rm=TRUE)/length(questions.to.keep$EO)
 all.defs$original.score <- all.defs$score
 all.defs$score <- c(dp.adj.score,fnr.adj.score,fpr.adj.score,eo.adj.score)
 
@@ -675,7 +672,7 @@ ggplot(test.demo,aes(x=edu,y=score)) + geom_boxplot() + theme_bw() +
   scale_x_discrete("Education level",labels=paste(gsub(" and","\nand",gsub(", ", ",\n", levels(test.demo$edu))),
                                                   "\n(",table(test.demo$edu),")",sep="")) + 
   scale_y_continuous("Comprehension Score",breaks=c(0,0.25,0.5,0.75,1))
-ggsave("data/figs-study-2/edu.png",height=2.2,width=3.65)
+ggsave("data/figs-study-2/edu.png",height=2.2,width=3.85)
 
 #library(broom)
 #library(bbmle)
